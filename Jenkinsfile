@@ -3,7 +3,7 @@ pipeline {
 
     tools {
         nodejs 'node20'
-        sonarQube 'sonar-scanner'
+        sonarRunner 'sonar-scanner'
     }
 
     environment {
