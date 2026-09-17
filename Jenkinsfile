@@ -3,7 +3,6 @@ pipeline {
 
     tools {
         nodejs 'node20'
-        sonarRunner 'sonar-scanner'
     }
 
     environment {
@@ -15,45 +14,66 @@ pipeline {
 
         stage('Checkout') {
             steps {
+                echo '📥 Checking out source code...'
                 checkout scm
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                sh 'node --version'
-                sh 'npm --version'
-                sh 'npm ci'
+                echo '📦 Installing Node.js dependencies...'
+
+                sh '''
+                    node --version
+                    npm --version
+                    npm ci
+                '''
             }
         }
 
         stage('Unit Test') {
             steps {
-                sh 'CI=true npm test -- --watchAll=false --passWithNoTests'
+                echo '🧪 Running unit tests...'
+
+                sh '''
+                    CI=true npm test -- --watchAll=false --passWithNoTests
+                '''
             }
         }
 
         stage('Build') {
             steps {
-                sh 'npm run build'
+                echo '🏗️ Building React application...'
+
+                sh '''
+                    npm run build
+                '''
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') {
-                    sh '''
-                        sonar-scanner \
-                          -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                          -Dsonar.projectName="Zomato Clone" \
-                          -Dsonar.sources=src
-                    '''
+                script {
+                    echo '🔍 Running SonarQube analysis...'
+
+                    def scannerHome = tool 'sonar-scanner'
+
+                    withSonarQubeEnv('SonarQube') {
+                        sh """
+                            ${scannerHome}/bin/sonar-scanner \
+                              -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                              -Dsonar.projectName="Zomato Clone" \
+                              -Dsonar.sources=src
+                        """
+                    }
                 }
             }
         }
 
         stage('Trivy Filesystem Scan') {
             steps {
+                echo '🛡️ Scanning source code with Trivy...'
+
                 sh '''
                     trivy fs \
                       --config /dev/null \
@@ -67,13 +87,24 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                sh 'docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .'
-                sh 'docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest'
+                echo '🐳 Building Docker image...'
+
+                sh '''
+                    docker build \
+                      -t ${DOCKER_IMAGE}:${BUILD_NUMBER} \
+                      .
+
+                    docker tag \
+                      ${DOCKER_IMAGE}:${BUILD_NUMBER} \
+                      ${DOCKER_IMAGE}:latest
+                '''
             }
         }
 
         stage('Trivy Image Scan') {
             steps {
+                echo '🛡️ Scanning Docker image with Trivy...'
+
                 sh '''
                     trivy image \
                       --config /dev/null \
@@ -86,6 +117,8 @@ pipeline {
 
         stage('Docker Hub Push') {
             steps {
+                echo '📤 Pushing Docker image to Docker Hub...'
+
                 withCredentials([
                     usernamePassword(
                         credentialsId: 'dockerhub-credentials',
@@ -93,12 +126,14 @@ pipeline {
                         passwordVariable: 'DOCKER_PASSWORD'
                     )
                 ]) {
+
                     sh '''
                         echo "$DOCKER_PASSWORD" | docker login \
                           -u "$DOCKER_USERNAME" \
                           --password-stdin
 
                         docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
+
                         docker push ${DOCKER_IMAGE}:latest
 
                         docker logout
@@ -109,6 +144,7 @@ pipeline {
     }
 
     post {
+
         success {
             echo '✅ Zomato DevSecOps pipeline completed successfully!'
         }
@@ -118,7 +154,11 @@ pipeline {
         }
 
         always {
-            sh 'docker image prune -f || true'
+            echo '🧹 Cleaning unused Docker images...'
+
+            sh '''
+                docker image prune -f || true
+            '''
         }
     }
 }
