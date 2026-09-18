@@ -92,8 +92,9 @@ pipeline {
 
                     def dependencyCheckHome = tool 'dependency-check'
 
-                    sh """
-                        mkdir -p dependency-check-report
+                    withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                        sh """
+                            mkdir -p dependency-check-report
 
                         ${dependencyCheckHome}/bin/dependency-check.sh \
                           --project "Zomato Clone" \
@@ -101,8 +102,10 @@ pipeline {
                           --format HTML \
                           --format XML \
                           --out dependency-check-report \
-                          --failOnCVSS 11
-                    """
+                          --failOnCVSS 11 \
+                          --nvdApiKey "$NVD_API_KEY"
+                        """
+                        }
                 }
             }
         }
