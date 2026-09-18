@@ -85,6 +85,26 @@ pipeline {
             }
         }
 
+        stage('OWASP Dependency-Check') {
+            steps {
+                script {
+                    echo '🔐 Running OWASP Dependency-Check...'
+
+                    def dependencyCheckHome = tool 'dependency-check'
+
+                    sh """
+                        ${dependencyCheckHome}/bin/dependency-check.sh \
+                          --project "Zomato Clone" \
+                          --scan . \
+                          --format HTML \
+                          --format XML \
+                          --out dependency-check-report \
+                          --failOnCVSS 11
+                    """
+                }
+            }
+        }
+
         stage('Docker Build') {
             steps {
                 echo '🐳 Building Docker image...'
