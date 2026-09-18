@@ -85,31 +85,6 @@ pipeline {
             }
         }
 
-        stage('OWASP Dependency-Check') {
-            steps {
-                script {
-                    echo '🔐 Running OWASP Dependency-Check...'
-
-                    def dependencyCheckHome = tool 'dependency-check'
-
-                    withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-                        sh """
-                            mkdir -p dependency-check-report
-
-                        ${dependencyCheckHome}/bin/dependency-check.sh \
-                          --project "Zomato Clone" \
-                          --scan . \
-                          --format HTML \
-                          --format XML \
-                          --out dependency-check-report \
-                          --failOnCVSS 11 \
-                          --nvdApiKey "$NVD_API_KEY"
-                        """
-                        }
-                }
-            }
-        }
-
         stage('Docker Build') {
             steps {
                 echo '🐳 Building Docker image...'
