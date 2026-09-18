@@ -93,6 +93,8 @@ pipeline {
                     def dependencyCheckHome = tool 'dependency-check'
 
                     sh """
+                        mkdir -p dependency-check-report
+
                         ${dependencyCheckHome}/bin/dependency-check.sh \
                           --project "Zomato Clone" \
                           --scan . \
